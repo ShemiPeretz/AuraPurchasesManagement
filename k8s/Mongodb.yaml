@@ -1,0 +1,127 @@
+# ============================================================================
+# MongoDB - StatefulSet & Service
+# ============================================================================
+#
+# StatefulSet ensures:
+# - Stable network identity
+# - Persistent storage
+# - Ordered deployment and scaling
+#
+# PersistentVolumeClaim provides durable storage that survives pod restarts
+#
+# Usage:
+#   kubectl apply -f mongodb.yaml -n ecommerce-system
+# ============================================================================
+
+---
+# PersistentVolumeClaim for MongoDB data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+  namespace: ecommerce-system
+  labels:
+    app: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # storageClassName: standard  # Uncomment and adjust for your cluster
+
+---
+# MongoDB StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  namespace: ecommerce-system
+  labels:
+    app: mongodb
+    component: database
+spec:
+  serviceName: mongodb-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+        component: database
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:7
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGO_INITDB_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MONGODB_DB_NAME
+        volumeMounts:
+        - name: mongodb-storage
+          mountPath: /data/db
+
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+
+        # Liveness probe - is MongoDB alive?
+        livenessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Readiness probe - is MongoDB ready to accept connections?
+        readinessProbe:
+          exec:
+            command:
+            - mongosh
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+      volumes:
+      - name: mongodb-storage
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
+
+---
+# MongoDB Service
+# Provides stable DNS name for MongoDB: mongodb-service.ecommerce-system.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: ecommerce-system
+  labels:
+    app: mongodb
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+  - port: 27017
+    targetPort: 27017
+    name: mongodb
+  selector:
+    app: mongodb

@@ -1,0 +1,386 @@
+# ============================================================================
+# GitHub Actions CI/CD - Complete System
+# ============================================================================
+#
+# This workflow builds and deploys the ENTIRE system:
+# 1. Builds all three services
+# 2. Runs all tests
+# 3. Pushes all Docker images
+# 4. Creates complete release with all artifacts
+# 5. Deploys to Kubernetes (optional)
+#
+# ============================================================================
+
+name: Complete System - CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ created ]
+  workflow_dispatch:
+    inputs:
+      deploy_to_k8s:
+        description: 'Deploy to Kubernetes'
+        required: false
+        default: 'false'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # ==========================================================================
+  # TEST ALL SERVICES
+  # ==========================================================================
+  test-all:
+    name: Test All Services
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: customer-management-api
+            path: customer-management-service
+          - name: customer-facing-service
+            path: customer-facing-service
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: 📦 Install dependencies
+      working-directory: ${{ matrix.service.path }}
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: 🧪 Run tests
+      working-directory: ${{ matrix.service.path }}
+      run: |
+        pytest --cov=. --cov-report=xml --cov-report=html -v
+
+    - name: 📈 Upload coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.service.name }}
+        path: ${{ matrix.service.path }}/htmlcov/
+        retention-days: 30
+
+  # ==========================================================================
+  # BUILD ALL DOCKER IMAGES
+  # ==========================================================================
+  build-all:
+    name: Build All Docker Images
+    runs-on: ubuntu-latest
+    needs: test-all
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - name: customer-management-api
+            path: customer-management-api
+          - name: customer-facing-service
+            path: customer-facing-service
+          - name: frontend
+            path: frontend
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🏷️ Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.service.name }}
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: 🏗️ Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: 🐳 Build and push ${{ matrix.service.name }}
+      uses: docker/build-push-action@v5
+      with:
+        context: ./${{ matrix.service.path }}
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # ==========================================================================
+  # CREATE COMPLETE RELEASE
+  # ==========================================================================
+  release:
+    name: Create Complete Release
+    runs-on: ubuntu-latest
+    needs: build-all
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 📦 Create service archives
+      run: |
+        # Customer Management API
+        cd customer-management-service
+        tar -czf ../customer-management-api.tar.gz \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='.pytest_cache' \
+          .
+        cd ..
+        
+        # Customer Facing Service
+        cd customer-facing-service
+        tar -czf ../customer-facing-service.tar.gz \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='.pytest_cache' \
+          .
+        cd ..
+        
+        # Frontend
+        cd frontend
+        tar -czf ../frontend.tar.gz .
+        cd ..
+        
+        # Kubernetes manifests
+        cd k8s
+        tar -czf ../k8s-manifests.tar.gz .
+        cd ..
+        
+        # Complete system archive
+        tar -czf complete-system.tar.gz \
+          customer-management-service/ \
+          customer-facing-service/ \
+          frontend/ \
+          k8s/ \
+          --exclude='__pycache__' \
+          --exclude='*.pyc' \
+          --exclude='.pytest_cache'
+
+    - name: 📝 Generate release notes
+      run: |
+        cat > RELEASE_NOTES.md << 'EOF'
+        # E-Commerce System - Complete Release
+        
+        ## 🚀 Quick Start
+        
+        ### Docker Compose (Recommended for testing)
+        ```bash
+        tar -xzf complete-system.tar.gz
+        cd frontend
+        docker-compose up -d
+        open http://localhost:3000
+        ```
+        
+        ### Kubernetes Deployment
+        ```bash
+        tar -xzf k8s-manifests.tar.gz
+        cd k8s
+        ./deploy.sh
+        kubectl port-forward svc/frontend-service 3000:80 -n ecommerce-system
+        ```
+        
+        ## 🐳 Docker Images
+        
+        Pull from GitHub Container Registry:
+        ```bash
+        docker pull ghcr.io/${{ github.repository }}/customer-management-api:latest
+        docker pull ghcr.io/${{ github.repository }}/customer-facing-service:latest
+        docker pull ghcr.io/${{ github.repository }}/frontend:latest
+        ```
+        
+        ## 📦 Artifacts Included
+        
+        - `customer-management-api.tar.gz` - Consumer service
+        - `customer-facing-service.tar.gz` - Producer service
+        - `frontend.tar.gz` - Web UI
+        - `k8s-manifests.tar.gz` - Kubernetes deployment files
+        - `complete-system.tar.gz` - Everything in one archive
+        
+        ## 🏗️ Architecture
+        
+        - **Frontend** (nginx) → **Customer Facing Service** (FastAPI) → **Kafka**
+        - **Kafka** → **Customer Management API** (FastAPI) → **MongoDB**
+        
+        ## ✨ Features
+        
+        - Microservices architecture
+        - Event-driven design with Kafka
+        - Horizontal pod autoscaling
+        - Complete test coverage
+        - Production-ready Docker images
+        - Kubernetes manifests with HPA
+        
+        ## 📊 Metrics
+        
+        - **Commit SHA**: `${{ github.sha }}`
+        - **Branch**: `${{ github.ref_name }}`
+        - **Build Date**: `$(date -u +'%Y-%m-%d %H:%M:%S UTC')`
+        
+        ## 📚 Documentation
+        
+        Each service includes comprehensive README with:
+        - Setup instructions
+        - API documentation
+        - Testing guide
+        - Deployment guide
+        EOF
+
+    - name: 📤 Upload release artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: complete-release-${{ github.sha }}
+        path: |
+          customer-management-api.tar.gz
+          customer-facing-service.tar.gz
+          frontend.tar.gz
+          k8s-manifests.tar.gz
+          complete-system.tar.gz
+          RELEASE_NOTES.md
+        retention-days: 90
+
+    - name: 🎉 Create GitHub Release (on tag)
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          customer-management-api.tar.gz
+          customer-facing-service.tar.gz
+          frontend.tar.gz
+          k8s-manifests.tar.gz
+          complete-system.tar.gz
+        body_path: RELEASE_NOTES.md
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ==========================================================================
+  # DEPLOY TO KUBERNETES (Optional)
+  # ==========================================================================
+  deploy-k8s:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-all
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_to_k8s == 'true') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[deploy]'))
+
+    environment:
+      name: production
+      url: https://ecommerce.example.com
+
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔧 Configure kubectl
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+
+    - name: 🚀 Deploy all services
+      run: |
+        cd k8s
+        
+        # Update image tags to use the commit SHA
+        COMMIT_SHA=${{ github.sha }}
+        REGISTRY=${{ env.REGISTRY }}
+        REPO=${{ github.repository }}
+        
+        # Deploy infrastructure first
+        kubectl apply -f namespace.yaml
+        kubectl apply -f configmap.yaml
+        kubectl apply -f mongodb.yaml
+        kubectl apply -f kafka.yaml
+        
+        # Wait for infrastructure
+        echo "Waiting for infrastructure..."
+        sleep 30
+        
+        # Deploy services with new images
+        kubectl set image deployment/customer-management-api \
+          api=${REGISTRY}/${REPO}/customer-management-api:main-${COMMIT_SHA:0:7} \
+          -n ecommerce-system || kubectl apply -f customer-management-api.yaml
+        
+        kubectl set image deployment/customer-facing-service \
+          api=${REGISTRY}/${REPO}/customer-facing-service:main-${COMMIT_SHA:0:7} \
+          -n ecommerce-system || kubectl apply -f customer-facing-service.yaml
+        
+        kubectl set image deployment/frontend \
+          nginx=${REGISTRY}/${REPO}/frontend:main-${COMMIT_SHA:0:7} \
+          -n ecommerce-system || kubectl apply -f frontend.yaml
+        
+        # Wait for rollouts
+        kubectl rollout status deployment/customer-management-api -n ecommerce-system
+        kubectl rollout status deployment/customer-facing-service -n ecommerce-system
+        kubectl rollout status deployment/frontend -n ecommerce-system
+
+    - name: ✅ Verify deployment
+      run: |
+        echo "Checking all pods..."
+        kubectl get pods -n ecommerce-system
+        
+        echo "Checking all services..."
+        kubectl get svc -n ecommerce-system
+        
+        echo "Checking HPAs..."
+        kubectl get hpa -n ecommerce-system
+
+  # ==========================================================================
+  # SUMMARY & NOTIFICATIONS
+  # ==========================================================================
+  summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [test-all, build-all, release]
+    if: always()
+
+    steps:
+    - name: 📊 Generate summary
+      run: |
+        echo "## 🎉 Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Test All | ${{ needs.test-all.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build All | ${{ needs.build-all.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Release | ${{ needs.release.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.test-all.result }}" = "success" ] && \
+           [ "${{ needs.build-all.result }}" = "success" ] && \
+           [ "${{ needs.release.result }}" = "success" ]; then
+          echo "✅ All jobs completed successfully!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Some jobs failed. Please check the logs." >> $GITHUB_STEP_SUMMARY
+        fi
