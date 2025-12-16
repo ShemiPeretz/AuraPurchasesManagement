@@ -1,18 +1,3 @@
-# ============================================================================
-# Frontend - Dockerfile
-# ============================================================================
-#
-# Serves static HTML/CSS/JS files using nginx web server
-#
-# Build command:
-#   docker build -t frontend:latest .
-#
-# Run command:
-#   docker run -d -p 3000:80 --name frontend frontend:latest
-#
-# ============================================================================
-
-# Use nginx alpine for lightweight image
 FROM nginx:alpine
 
 # Remove default nginx website
@@ -35,19 +20,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
-
-# ============================================================================
-# BUILD NOTES
-# ============================================================================
-# Image size: ~25MB (nginx alpine is very small)
-#
-# Security:
-# - Alpine Linux (minimal attack surface)
-# - No package manager needed at runtime
-# - Read-only root filesystem compatible
-#
-# Performance:
-# - nginx is extremely fast for static files
-# - Gzip compression enabled in nginx.conf
-# - Browser caching headers configured
-# ============================================================================

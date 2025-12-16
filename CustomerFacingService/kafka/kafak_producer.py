@@ -6,9 +6,6 @@ This module handles:
 2. Message serialization
 3. Error handling and retries
 4. Metrics tracking
-
-Author: Your Name
-Date: 2025
 """
 
 import asyncio
@@ -41,7 +38,7 @@ class KafkaProducer:
         Initialize Kafka producer.
 
         Args:
-            bootstrap_servers: Kafka broker address (e.g., "localhost:9092")
+            bootstrap_servers: Kafka broker address
             topic: Kafka topic to publish to
         """
         self.bootstrap_servers = bootstrap_servers
@@ -294,60 +291,3 @@ class KafkaProducer:
             "topic": self.topic,
             "bootstrap_servers": self.bootstrap_servers
         }
-
-
-# ============================================================================
-# STANDALONE TESTING (Optional)
-# ============================================================================
-
-async def test_producer():
-    """
-    Test function to run the producer standalone.
-
-    This is useful for debugging and local testing.
-    Usage: python kafka_producer.py
-    """
-    import os
-
-    # Load configuration
-    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-
-    # Initialize and start producer
-    producer = KafkaProducer(
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-        topic="purchases"
-    )
-
-    try:
-        await producer.start()
-
-        # Send test message
-        test_message = {
-            "username": "test_user",
-            "user_id": "test_123",
-            "item_name": "Test Product",
-            "price": 99.99,
-            "timestamp": datetime.utcnow().isoformat() + "Z"
-        }
-
-        logger.info("Sending test message...")
-        metadata = await producer.send_message(
-            key="test_123",
-            value=test_message
-        )
-
-        logger.info(f"Test message sent successfully: {metadata}")
-
-        # Print stats
-        stats = producer.get_stats()
-        logger.info(f"Producer stats: {stats}")
-
-    except Exception as e:
-        logger.error(f"Test failed: {e}")
-    finally:
-        await producer.stop()
-
-
-if __name__ == "__main__":
-    # Run standalone producer for testing
-    asyncio.run(test_producer())

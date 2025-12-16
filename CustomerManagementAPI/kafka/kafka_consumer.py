@@ -6,9 +6,6 @@ This module handles:
 2. Deserializing purchase data
 3. Saving to MongoDB via DatabaseManager
 4. Error handling and retry logic
-
-Author: Your Name
-Date: 2025
 """
 
 import asyncio
@@ -270,51 +267,3 @@ class KafkaConsumer:
             "topic": self.topic,
             "group_id": self.group_id
         }
-
-
-# ============================================================================
-# STANDALONE TESTING (Optional)
-# ============================================================================
-
-async def test_consumer():
-    """
-    Test function to run the consumer standalone.
-
-    This is useful for debugging and local testing.
-    Usage: python kafka_consumer.py
-    """
-    import os
-
-    # Load configuration
-    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-    KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-
-    # Initialize database manager
-    db_manager = DatabaseManager(MONGODB_URI, "ecommerce", "purchases")
-    await db_manager.connect()
-
-    # Initialize and start consumer
-    consumer = KafkaConsumer(
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-        topic="purchases",
-        group_id="test-consumer-group",
-        db_manager=db_manager
-    )
-
-    try:
-        await consumer.start()
-
-        # Run for a while
-        logger.info("Consumer running... Press Ctrl+C to stop")
-        await asyncio.sleep(3600)  # Run for 1 hour
-
-    except KeyboardInterrupt:
-        logger.info("Received interrupt signal")
-    finally:
-        await consumer.stop()
-        await db_manager.disconnect()
-
-
-if __name__ == "__main__":
-    # Run standalone consumer for testing
-    asyncio.run(test_consumer())

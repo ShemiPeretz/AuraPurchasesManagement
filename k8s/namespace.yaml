@@ -1,14 +1,3 @@
-# ============================================================================
-# Namespace - E-Commerce System
-# ============================================================================
-# Creates a dedicated namespace to isolate our application resources
-#
-# Usage:
-#   kubectl apply -f namespace.yaml
-#
-# All subsequent resources will be deployed in this namespace
-# ============================================================================
-
 apiVersion: v1
 kind: Namespace
 metadata:

@@ -1,52 +1,28 @@
-"""
-Customer Facing Web Server
-
-This service is responsible for:
-1. Handling "buy" requests from users
-2. Publishing purchase events to Kafka
-3. Proxying requests to Customer Management API for purchase history
-4. Serving as the entry point for customer interactions
-
-Author: Your Name
-Date: 2025
-"""
-
-import os
 import logging
-import uuid
-from datetime import datetime
-from typing import Optional, List
+import os
 from contextlib import asynccontextmanager
+from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, status
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, validator
 import httpx
+from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from CustomerFacingService.data_model.buy import *
 from CustomerFacingService.data_model.health import HealthResponse
 from CustomerFacingService.data_model.purchase import *
-
-# Import our Kafka producer module
 from CustomerFacingService.kafka.kafak_producer import KafkaProducer
 
-# ============================================================================
 # CONFIGURATION
-# ============================================================================
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Environment variables with defaults for local development
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "purchases")
-
-# Customer Management API configuration
 CUSTOMER_MANAGEMENT_API_URL = os.getenv(
     "CUSTOMER_MANAGEMENT_API_URL",
     "http://localhost:8001"
@@ -71,18 +47,10 @@ RANDOM_ITEMS = [
     {"name": "Router", "price": 159.99},
 ]
 
-
-# ============================================================================
-# GLOBAL INSTANCES
-# ============================================================================
-
 kafka_producer: Optional[KafkaProducer] = None
 http_client: Optional[httpx.AsyncClient] = None
 
-
-# ============================================================================
 # APPLICATION LIFECYCLE
-# ============================================================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -134,9 +102,7 @@ async def lifespan(app: FastAPI):
     logger.info("Customer Facing Web Server shutdown complete")
 
 
-# ============================================================================
 # FASTAPI APPLICATION
-# ============================================================================
 
 app = FastAPI(
     title="Customer Facing Web Server",
@@ -145,11 +111,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ============================================================================
 # CORS MIDDLEWARE
-# ============================================================================
-# Allow frontend to make requests from different origins
-# In production, you would restrict this to specific domains
 
 app.add_middleware(
     CORSMiddleware,
@@ -159,10 +121,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ============================================================================
 # HELPER FUNCTIONS
-# ============================================================================
 
 def select_random_item() -> dict:
     """
@@ -202,9 +161,7 @@ def generate_purchase_event(buy_request: BuyRequest) -> PurchaseEvent:
     )
 
 
-# ============================================================================
 # API ENDPOINTS
-# ============================================================================
 
 @app.get("/", response_model=dict)
 async def root():
@@ -333,7 +290,7 @@ async def buy(buy_request: BuyRequest):
         )
 
 
-@app.get("/purchases/{user_id}", response_model=UserPurchasesResponse)
+@app.get("/“getAllUserBuys”/{user_id}", response_model=UserPurchasesResponse)
 async def get_all_user_purchases(user_id: str):
     """
     Retrieve all purchases for a specific user.
@@ -443,19 +400,15 @@ async def metrics():
     }
 
 
-# ============================================================================
 # MAIN ENTRY POINT
-# ============================================================================
 
 if __name__ == "__main__":
     import uvicorn
 
-    # Run the application
-    # In production, this is handled by the Docker container CMD
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,  # Only for development
+        reload=True,
         log_level="info"
     )

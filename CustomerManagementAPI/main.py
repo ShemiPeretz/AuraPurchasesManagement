@@ -6,7 +6,7 @@ This service is responsible for:
 2. Storing purchases in MongoDB
 3. Providing REST API to retrieve user purchases
 """
-
+import logging
 import os
 from datetime import datetime
 from contextlib import asynccontextmanager
@@ -18,7 +18,6 @@ from CustomerManagementAPI.kafka.kafka_consumer import KafkaConsumer
 from CustomerManagementAPI.database.database_manager import DatabaseManager
 from CustomerManagementAPI.data_model.health import HealthResponse
 from CustomerManagementAPI.data_model.purchase import Purchase, PurchaseResponse, UserPurchasesResponse
-from CustomerManagementAPI.logger.logger import Logger
 
 # ============================================================================
 # CONFIGURATION
@@ -43,7 +42,7 @@ KAFKA_GROUP_ID = os.getenv("KAFKA_GROUP_ID", "customer-management-group")
 # Global instances
 db_manager: DatabaseManager = None
 kafka_consumer: KafkaConsumer = None
-logger: Logger = Logger()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

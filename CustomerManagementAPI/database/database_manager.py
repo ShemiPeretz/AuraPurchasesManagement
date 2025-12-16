@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, List
 
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,12 +7,9 @@ from pymongo.errors import DuplicateKeyError
 from datetime import datetime
 
 from CustomerManagementAPI.data_model.purchase import Purchase
-from CustomerManagementAPI.logger.logger import Logger
 
 
-# ============================================================================
 # DATABASE OPERATIONS
-# ============================================================================
 
 class DatabaseManager:
     """
@@ -39,7 +37,7 @@ class DatabaseManager:
         self.client: Optional[AsyncIOMotorClient] = None
         self.db = None
         self.collection = None
-        self.logger = Logger()
+        self.logger = logging.getLogger(__name__)
 
     async def connect(self):
         """

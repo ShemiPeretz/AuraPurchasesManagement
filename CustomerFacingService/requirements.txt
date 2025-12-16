@@ -1,75 +1,12 @@
-# ============================================================================
-# Customer Facing Web Server - Python Dependencies
-# ============================================================================
-
-# FastAPI Framework
-# - Modern, fast web framework for building APIs
-# - Automatic API documentation (Swagger/OpenAPI)
-# - Built-in data validation with Pydantic
 fastapi==0.109.0
-
-# ASGI Server
-# - Production-ready ASGI server
-# - Handles async requests efficiently
 uvicorn[standard]==0.27.0
-
-# HTTP Client
-# - Modern async HTTP client for making requests to Customer Management API
-# - Support for connection pooling, timeouts, retries
-httpx==0.26.0
-
-# Kafka Client
-# - Async Kafka client for Python
-# - Supports Kafka 0.10+ protocol
+motor==3.3.2
+pymongo==4.6.1
 aiokafka==0.10.0
-
-# Pydantic
-# - Data validation using Python type hints
-# - Required by FastAPI for request/response models
 pydantic==2.5.3
-
-# Python-dotenv (for local development)
-# - Load environment variables from .env file
-# - Makes local testing easier
 python-dotenv==1.0.0
-
-# ============================================================================
-# TESTING DEPENDENCIES
-# ============================================================================
-
-# PyTest
-# - Testing framework
 pytest==7.4.4
-
-# PyTest Async
-# - Async test support for pytest
 pytest-asyncio==0.23.3
-
-# HTTP Testing
-# - Test FastAPI endpoints
-# httpx is already included above
-
-# Test Coverage
-# - Code coverage measurement
+httpx==0.26.0
 pytest-cov==4.1.0
-
-# Mocking
-# - Create mock objects for testing
 pytest-mock==3.12.0
-
-# Respx
-# - Mock httpx requests for testing
-respx==0.20.2
-
-# ============================================================================
-# OPTIONAL: MONITORING & LOGGING (Production Use)
-# ============================================================================
-
-# Prometheus Client
-# - Expose metrics for Prometheus scraping
-# - Useful for custom HPA metrics
-# prometheus-client==0.19.0
-
-# Structured Logging
-# - JSON structured logging for better log parsing
-# python-json-logger==2.0.7

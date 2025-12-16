@@ -1,5 +1,5 @@
 // ============================================================================
-// E-Commerce Purchase System - JavaScript
+// Purchase System - JavaScript
 // ============================================================================
 // Handles all API interactions and UI updates
 // ============================================================================
@@ -217,7 +217,7 @@ async function handleGetAllPurchases() {
 
     try {
         // Make API request
-        const data = await apiRequest(`/purchases/${userId}`);
+        const data = await apiRequest(`/getAllUserBuys/${userId}`);
 
         console.log('Purchase history retrieved:', data);
 
@@ -315,59 +315,7 @@ function displayPurchaseTable(purchases) {
     tableElement.style.display = 'block';
 }
 
-// ============================================================================
-// LOAD AVAILABLE ITEMS
-// ============================================================================
-
-/**
- * Load and display available items from catalog
- */
-async function loadAvailableItems() {
-    console.log('Load Items button clicked');
-
-    const button = document.getElementById('loadItemsButton');
-    const grid = document.getElementById('itemsGrid');
-
-    // Disable button
-    button.disabled = true;
-    button.textContent = '⏳ Loading...';
-
-    try {
-        // Make API request
-        const items = await apiRequest('/items');
-
-        console.log('Items loaded:', items);
-
-        // Display items in grid
-        grid.innerHTML = items.map(item => `
-            <div class="item-card">
-                <div class="item-name">${item.name}</div>
-                <div class="item-price">${formatPrice(item.price)}</div>
-            </div>
-        `).join('');
-
-        grid.style.display = 'grid';
-
-        // Update button
-        button.textContent = '✅ Items Loaded';
-        setTimeout(() => {
-            button.innerHTML = '<span class="btn-icon">📋</span> Refresh Items';
-            button.disabled = false;
-        }, 2000);
-
-    } catch (error) {
-        console.error('Load items error:', error);
-        button.innerHTML = '<span class="btn-icon">❌</span> Failed to Load';
-        setTimeout(() => {
-            button.innerHTML = '<span class="btn-icon">📋</span> Load Available Items';
-            button.disabled = false;
-        }, 2000);
-    }
-}
-
-// ============================================================================
 // SYSTEM HEALTH CHECK
-// ============================================================================
 
 /**
  * Check system health status
@@ -454,9 +402,7 @@ async function checkSystemHealth() {
     }
 }
 
-// ============================================================================
 // EVENT LISTENERS
-// ============================================================================
 
 /**
  * Initialize event listeners when DOM is loaded
@@ -506,9 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('API Base URL:', API_BASE_URL);
 });
 
-// ============================================================================
 // KEYBOARD SHORTCUTS (Optional Enhancement)
-// ============================================================================
 
 document.addEventListener('keydown', (e) => {
     // Alt + B = Buy
@@ -534,7 +478,7 @@ document.addEventListener('keydown', (e) => {
 // CONSOLE BANNER (Fun little touch)
 // ============================================================================
 
-console.log('%c🛒 E-Commerce Purchase System', 'font-size: 20px; font-weight: bold; color: #4f46e5;');
+console.log('%c🛒 Purchase System', 'font-size: 20px; font-weight: bold; color: #4f46e5;');
 console.log('%cMicroservices Architecture with Kafka & MongoDB', 'font-size: 12px; color: #6b7280;');
 console.log('%c\nKeyboard Shortcuts:', 'font-weight: bold; color: #10b981;');
 console.log('  Alt + B  →  Buy Random Item');

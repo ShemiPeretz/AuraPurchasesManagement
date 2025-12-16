@@ -1,15 +1,3 @@
-# ============================================================================
-# Frontend UI - Deployment, Service, HPA & Ingress
-# ============================================================================
-#
-# Static web application served by nginx that:
-# - Provides user interface for purchases
-# - Connects to Customer Facing Service via HTTP
-# - Serves HTML, CSS, JavaScript files
-#
-# ============================================================================
-
----
 # Deployment
 apiVersion: apps/v1
 kind: Deployment

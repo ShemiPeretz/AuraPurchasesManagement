@@ -1,25 +1,3 @@
-# ============================================================================
-# Customer Facing Web Server - Dockerfile
-# ============================================================================
-#
-# Multi-stage build for optimized image size and security
-# Stage 1: Builder - Install dependencies
-# Stage 2: Runtime - Copy only necessary files
-#
-# Build command:
-#   docker build -t CustomerFacingService:latest .
-#
-# Run command:
-#   docker run -p 8000:8000 \
-#     -e KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
-#     -e CUSTOMER_MANAGEMENT_API_URL=http://customer-management-api:8001 \
-#     CustomerFacingService:latest
-#
-# ============================================================================
-
-# ============================================================================
-# STAGE 1: BUILDER
-# ============================================================================
 FROM python:3.11-slim as builder
 
 # Set working directory
@@ -42,9 +20,6 @@ COPY requirements.txt .
 # - --user: Install to user directory for easy copying
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# ============================================================================
-# STAGE 2: RUNTIME
-# ============================================================================
 FROM python:3.11-slim
 
 # Set working directory
@@ -77,31 +52,8 @@ ENV CUSTOMER_MANAGEMENT_API_URL=http://localhost:8001
 EXPOSE 8000
 
 # Health check
-# Kubernetes will use /health endpoint, but this is good for Docker
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 # Run the application
-# - host 0.0.0.0: Listen on all interfaces (required in container)
-# - port 8000: Application port
-# - no-reload: Don't use auto-reload in production
 CMD ["uvicorn", "CustomerFacingService.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
-
-# ============================================================================
-# BUILD NOTES
-# ============================================================================
-# Image size optimizations:
-# - Multi-stage build reduces final image size
-# - slim base image (no unnecessary tools)
-# - Clean up apt cache
-# - Don't include test dependencies in production
-#
-# Security:
-# - Run as non-root user
-# - Minimal base image (fewer attack vectors)
-# - No unnecessary packages
-#
-# Performance:
-# - Python dependencies pre-installed
-# - Fast startup time
-# ============================================================================

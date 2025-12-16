@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Commerce Purchase System</title>
+    <title>Purchase System</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
     <!-- ================================================================== -->
     <header>
         <div class="container">
-            <h1>🛒 E-Commerce Purchase System</h1>
+            <h1>🛒 Purchase System</h1>
             <p class="subtitle">Microservices Demo - Kafka Event-Driven Architecture</p>
         </div>
     </header>
@@ -62,7 +62,7 @@
 
             <button id="buyButton" class="btn btn-primary">
                 <span class="btn-icon">🛒</span>
-                Buy Random Item
+                Buy
             </button>
 
             <!-- Loading indicator -->
@@ -79,7 +79,7 @@
         <!-- PURCHASE HISTORY SECTION -->
         <!-- ============================================================== -->
         <section class="card">
-            <h2>📜 Purchase History</h2>
+            <h2>📜 Buys History</h2>
             <p class="description">
                 View all your previous purchases. Data is retrieved from MongoDB
                 via the Customer Management API.
@@ -87,7 +87,7 @@
 
             <button id="getAllButton" class="btn btn-secondary">
                 <span class="btn-icon">📊</span>
-                Get All Purchases
+                Get All User Buys
             </button>
 
             <!-- Loading indicator -->
@@ -116,27 +116,6 @@
                         <!-- Populated by JavaScript -->
                     </tbody>
                 </table>
-            </div>
-        </section>
-
-        <!-- ============================================================== -->
-        <!-- AVAILABLE ITEMS SECTION -->
-        <!-- ============================================================== -->
-        <section class="card">
-            <h2>🏪 Available Items</h2>
-            <p class="description">
-                These are the items available in our catalog. When you click "Buy",
-                one of these items will be randomly selected.
-            </p>
-
-            <button id="loadItemsButton" class="btn btn-secondary">
-                <span class="btn-icon">📋</span>
-                Load Available Items
-            </button>
-
-            <!-- Items grid -->
-            <div id="itemsGrid" class="items-grid" style="display: none;">
-                <!-- Populated by JavaScript -->
             </div>
         </section>
 
