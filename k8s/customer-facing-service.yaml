@@ -9,7 +9,7 @@ metadata:
     component: producer
     tier: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: customer-facing-service
@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: aurapurchasesmanagement-customer-facing-service:latest
+        image: customer-facing-service:latest
         imagePullPolicy: IfNotPresent
 
         ports:

@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: aurapurchasesmanagement-customer-management-api:latest
+        image: customer-management-api:latest
         imagePullPolicy: IfNotPresent
 
         ports:
