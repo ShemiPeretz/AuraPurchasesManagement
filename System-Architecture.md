@@ -142,6 +142,7 @@ A **microservices-based platform** that handles customer purchases through an **
 **Port:** 8000 (internally), exposed via Ingress at `http://localhost/api`
 
 **Autoscaling:**
+  - Min: 1 pod, Max: 5 pods
   - HTTP request rate scaling: Scales when there are 100+ pending/queued requests
 - Reason: Faster response to traffic spikes, scales on actual demand
 

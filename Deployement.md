@@ -65,6 +65,9 @@ minikube image load mongo:7
 
 **Install KEDA:**
 ```bash
+kubectl create namespace keda
+```
+```bash
 kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.13.1/keda-2.13.1.yaml
 ```
 **Apply the official KEDA HTTP Add-on v0.7.0:**

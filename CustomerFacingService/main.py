@@ -290,7 +290,7 @@ async def buy(buy_request: BuyRequest):
         )
 
 
-@app.get("/“getAllUserBuys”/{user_id}", response_model=UserPurchasesResponse)
+@app.get("/getAllUserBuys/{user_id}", response_model=UserPurchasesResponse)
 async def get_all_user_purchases(user_id: str):
     """
     Retrieve all purchases for a specific user.

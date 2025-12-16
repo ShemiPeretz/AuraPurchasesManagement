@@ -9,7 +9,7 @@ metadata:
     component: producer
     tier: backend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: customer-facing-service
@@ -146,6 +146,9 @@ metadata:
   name: customer-facing-service-http-scaledobject
   namespace: ecommerce-system
 spec:
+  replicas:
+    min: 1
+    max: 5
   scaleTargetRef:
     name: customer-facing-service
     port: 8002
