@@ -1,0 +1,112 @@
+# ============================================================================
+# Frontend UI - Deployment, Service, HPA & Ingress
+# ============================================================================
+#
+# Static web application served by nginx that:
+# - Provides user interface for purchases
+# - Connects to Customer Facing Service via HTTP
+# - Serves HTML, CSS, JavaScript files
+#
+# ============================================================================
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: ecommerce-system
+  labels:
+    app: frontend
+    component: ui
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        component: ui
+        tier: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: frontend:latest
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: ecommerce-system
+  labels:
+    app: frontend
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: frontend
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: ecommerce-system
+  labels:
+    app: frontend
+  annotations:
+     nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: "nginx"
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 80

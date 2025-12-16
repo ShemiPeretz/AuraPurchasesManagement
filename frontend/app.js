@@ -8,11 +8,7 @@
 // CONFIGURATION
 // ============================================================================
 
-// API Base URL - Change this to match your backend URL
-// In Docker: http://localhost:8000
-// In Kubernetes: https://your-domain.com or the service URL
-const API_BASE_URL = 'http://localhost:8000';
-
+const API_BASE_URL = 'http://localhost/api';
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
