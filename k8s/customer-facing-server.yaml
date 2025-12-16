@@ -1,0 +1,145 @@
+# ============================================================================
+# Customer Facing Web Server - Deployment, Service & HPA
+# ============================================================================
+#
+# Producer service that:
+# - Handles customer purchase requests
+# - Publishes events to Kafka
+# - Proxies requests to Customer Management API
+#
+# Autoscaling based on CPU and request rate
+#
+# Usage:
+#   kubectl apply -f customer-facing-service.yaml -n ecommerce-system
+# ============================================================================
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-facing-service
+  namespace: ecommerce-system
+  labels:
+    app: customer-facing-service
+    component: producer
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-facing-service
+  template:
+    metadata:
+      labels:
+        app: customer-facing-service
+        component: producer
+        tier: backend
+    spec:
+      containers:
+      - name: api
+        image: aurapurchasesmanagement-customer-facing-service:latest
+        imagePullPolicy: IfNotPresent  # Change to Always for production
+
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+
+        # Environment variables from ConfigMap
+        env:
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_BOOTSTRAP_SERVERS
+        - name: KAFKA_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_TOPIC
+        - name: CUSTOMER_MANAGEMENT_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: CUSTOMER_MANAGEMENT_API_URL
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+
+        # Resource requests and limits
+        # IMPORTANT: These are required for HPA to work
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"     # HPA will scale based on this
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # Liveness probe - is the app alive?
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 45
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        # Readiness probe - is the app ready to serve traffic?
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        # Startup probe
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 12  # 60 seconds total
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-facing-service
+  namespace: ecommerce-system
+  labels:
+    app: customer-facing-service
+spec:
+  type: ClusterIP  # Change to LoadBalancer for direct external access
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: customer-facing-service
+
+---
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: customer-facing-service-http-scaledobject
+  namespace: ecommerce-system
+spec:
+  scaleTargetRef:
+    name: customer-facing-service
+    port: 8002
+    service: customer-facing-service
+
+  hosts:
+    - customer-facing-service.ecommerce-system.svc.cluster.local
+
+  targetPendingRequests: 100

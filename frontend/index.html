@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Purchase System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ================================================================== -->
+    <!-- HEADER -->
+    <!-- ================================================================== -->
+    <header>
+        <div class="container">
+            <h1>🛒 E-Commerce Purchase System</h1>
+            <p class="subtitle">Microservices Demo - Kafka Event-Driven Architecture</p>
+        </div>
+    </header>
+
+    <!-- ================================================================== -->
+    <!-- MAIN CONTENT -->
+    <!-- ================================================================== -->
+    <main class="container">
+
+        <!-- ============================================================== -->
+        <!-- USER INFORMATION SECTION -->
+        <!-- ============================================================== -->
+        <section class="card">
+            <h2>👤 User Information</h2>
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input
+                    type="text"
+                    id="username"
+                    placeholder="Enter your username (e.g., john_doe)"
+                    value="demo_user"
+                >
+            </div>
+            <div class="form-group">
+                <label for="userId">User ID:</label>
+                <input
+                    type="text"
+                    id="userId"
+                    placeholder="Enter your user ID (e.g., user_123)"
+                    value="user_demo_123"
+                >
+            </div>
+            <p class="info-text">
+                💡 Tip: Keep the same User ID to see your purchase history accumulate!
+            </p>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- PURCHASE SECTION -->
+        <!-- ============================================================== -->
+        <section class="card">
+            <h2>🛍️ Make a Purchase</h2>
+            <p class="description">
+                Click the button below to buy a random item from our catalog.
+                The purchase will be processed asynchronously through Kafka.
+            </p>
+
+            <button id="buyButton" class="btn btn-primary">
+                <span class="btn-icon">🛒</span>
+                Buy Random Item
+            </button>
+
+            <!-- Loading indicator -->
+            <div id="buyLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing purchase...</p>
+            </div>
+
+            <!-- Purchase result -->
+            <div id="buyResult" class="result" style="display: none;"></div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- PURCHASE HISTORY SECTION -->
+        <!-- ============================================================== -->
+        <section class="card">
+            <h2>📜 Purchase History</h2>
+            <p class="description">
+                View all your previous purchases. Data is retrieved from MongoDB
+                via the Customer Management API.
+            </p>
+
+            <button id="getAllButton" class="btn btn-secondary">
+                <span class="btn-icon">📊</span>
+                Get All Purchases
+            </button>
+
+            <!-- Loading indicator -->
+            <div id="historyLoading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Fetching purchase history...</p>
+            </div>
+
+            <!-- Purchase history result -->
+            <div id="historyResult" class="result" style="display: none;"></div>
+
+            <!-- Purchase statistics -->
+            <div id="purchaseStats" class="stats" style="display: none;"></div>
+
+            <!-- Purchase table -->
+            <div id="purchaseTable" style="display: none;">
+                <table class="purchases-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Price</th>
+                            <th>Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchaseTableBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- AVAILABLE ITEMS SECTION -->
+        <!-- ============================================================== -->
+        <section class="card">
+            <h2>🏪 Available Items</h2>
+            <p class="description">
+                These are the items available in our catalog. When you click "Buy",
+                one of these items will be randomly selected.
+            </p>
+
+            <button id="loadItemsButton" class="btn btn-secondary">
+                <span class="btn-icon">📋</span>
+                Load Available Items
+            </button>
+
+            <!-- Items grid -->
+            <div id="itemsGrid" class="items-grid" style="display: none;">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- SYSTEM STATUS SECTION -->
+        <!-- ============================================================== -->
+        <section class="card">
+            <h2>🔧 System Status</h2>
+            <p class="description">
+                Check the health status of all backend services.
+            </p>
+
+            <button id="healthCheckButton" class="btn btn-secondary">
+                <span class="btn-icon">💚</span>
+                Check System Health
+            </button>
+
+            <!-- Health status -->
+            <div id="healthStatus" class="health-status" style="display: none;">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================================================================== -->
+    <!-- FOOTER -->
+    <!-- ================================================================== -->
+    <footer>
+        <div class="container">
+            <p>
+                <a href="http://localhost:8000/docs" target="_blank">API Documentation</a> |
+                <a href="http://localhost:8080" target="_blank">Kafka UI</a>
+            </p>
+            <p class="tech-stack">
+                Tech Stack: FastAPI · Kafka · MongoDB · Docker · Kubernetes
+            </p>
+        </div>
+    </footer>
+
+    <!-- ================================================================== -->
+    <!-- JAVASCRIPT -->
+    <!-- ================================================================== -->
+    <script src="app.js"></script>
+</body>
+</html>

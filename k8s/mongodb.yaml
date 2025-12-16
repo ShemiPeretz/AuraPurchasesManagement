@@ -108,7 +108,6 @@ spec:
 
 ---
 # MongoDB Service
-# Provides stable DNS name for MongoDB: mongodb-service.ecommerce-system.svc.cluster.local
 apiVersion: v1
 kind: Service
 metadata:

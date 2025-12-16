@@ -1,49 +1,90 @@
 # ============================================================================
-# Kafka & Zookeeper - Deployments & Services
+# Customer Management API - Deployment, Service & HPA
 # ============================================================================
 #
-# Simple single-broker Kafka setup suitable for development and demos
-# For production, consider using Strimzi Kafka Operator or Confluent Operator
+# Consumer service that:
+# - Consumes purchase events from Kafka
+# - Stores purchases in MongoDB
+# - Provides REST API for querying purchases
 #
-# Components:
-# - Zookeeper: Kafka metadata management
-# - Kafka: Message broker
+# Autoscaling based on CPU utilization
 #
 # Usage:
-#   kubectl apply -f kafka.yaml -n ecommerce-system
+#   kubectl apply -f customer-management-api.yaml -n ecommerce-system
 # ============================================================================
 
 ---
-# Zookeeper Deployment
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zookeeper
+  name: customer-management-api
   namespace: ecommerce-system
   labels:
-    app: zookeeper
-    component: messaging
+    app: customer-management-api
+    component: consumer
+    tier: backend
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zookeeper
+      app: customer-management-api
   template:
     metadata:
       labels:
-        app: zookeeper
-        component: messaging
+        app: customer-management-api
+        component: consumer
+        tier: backend
     spec:
       containers:
-      - name: zookeeper
-        image: bitnami/zookeeper:latest
-        ports:
-        - containerPort: 2181
-          name: client
-        env:
-        - name: ALLOW_ANONYMOUS_LOGIN
-          value: "yes"
+      - name: api
+        image: aurapurchasesmanagement-customer-management-api:latest
+        imagePullPolicy: IfNotPresent
 
+        ports:
+        - containerPort: 8001
+          name: http
+          protocol: TCP
+
+        # Environment variables from ConfigMap
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MONGODB_URI
+        - name: MONGODB_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MONGODB_DB_NAME
+        - name: MONGODB_COLLECTION
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MONGODB_COLLECTION
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_BOOTSTRAP_SERVERS
+        - name: KAFKA_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_TOPIC
+        - name: KAFKA_GROUP_ID
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: KAFKA_GROUP_ID
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: LOG_LEVEL
+
+        # Resource requests and limits
         resources:
           requests:
             memory: "256Mi"
@@ -52,119 +93,93 @@ spec:
             memory: "512Mi"
             cpu: "500m"
 
+        # Liveness probe - is the app alive?
+        # If this fails, Kubernetes will restart the pod
         livenessProbe:
-          tcpSocket:
-            port: 2181
-          initialDelaySeconds: 30
-          periodSeconds: 10
-
-        readinessProbe:
-          tcpSocket:
-            port: 2181
-          initialDelaySeconds: 10
-          periodSeconds: 5
-
----
-# Zookeeper Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: zookeeper-service
-  namespace: ecommerce-system
-  labels:
-    app: zookeeper
-spec:
-  type: ClusterIP
-  ports:
-  - port: 2181
-    targetPort: 2181
-    name: client
-  selector:
-    app: zookeeper
-
----
-# Kafka Deployment
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kafka
-  namespace: ecommerce-system
-  labels:
-    app: kafka
-    component: messaging
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kafka
-  template:
-    metadata:
-      labels:
-        app: kafka
-        component: messaging
-    spec:
-      containers:
-      - name: kafka
-        image: bitnami/kafka:latest
-        ports:
-        - containerPort: 9092
-          name: kafka
-        env:
-        - name: KAFKA_CFG_ZOOKEEPER_CONNECT
-          value: "zookeeper-service:2181"
-        - name: ALLOW_PLAINTEXT_LISTENER
-          value: "yes"
-        - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-          value: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-        - name: KAFKA_CFG_LISTENERS
-          value: "PLAINTEXT://:9092,PLAINTEXT_HOST://:9093"
-        - name: KAFKA_CFG_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://kafka-service:9092,PLAINTEXT_HOST://localhost:9093"
-        - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
-          value: "PLAINTEXT"
-        - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
-          value: "true"
-
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-
-        # Liveness probe - check if Kafka is alive
-        livenessProbe:
-          tcpSocket:
-            port: 9092
-          initialDelaySeconds: 60
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 60  # Wait for Kafka consumer to initialize
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
 
-        # Readiness probe - check if Kafka is ready
+        # Readiness probe - is the app ready to serve traffic?
+        # If this fails, pod is removed from service endpoints
         readinessProbe:
-          tcpSocket:
-            port: 9092
+          httpGet:
+            path: /health
+            port: 8001
           initialDelaySeconds: 30
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 3
 
+        # Startup probe - give app time to start
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 12  # Allow 60 seconds to start (12 * 5)
+
 ---
-# Kafka Service
+# Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: kafka-service
+  name: customer-management-service
   namespace: ecommerce-system
   labels:
-    app: kafka
+    app: customer-management-api
 spec:
   type: ClusterIP
   ports:
-  - port: 9092
-    targetPort: 9092
-    name: kafka
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+    name: http
   selector:
-    app: kafka
+    app: customer-management-api
+
+---
+
+# ============================================================================
+# Customer Management API - ScaledObject
+# Scaling based on Kafka Consumer Lag (KEDA Kafka Scaler)
+# ============================================================================
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: customer-management-api-scaledobject
+  namespace: ecommerce-system
+  labels:
+    app.kubernetes.io/name: customer-management-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: customer-management-api
+  pollingInterval: 10
+  cooldownPeriod: 60
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka-service.ecommerce-system.svc.cluster.local:29092
+        consumerGroup: customer-management-group
+        topic: purchases
+        # --- NEW FIELD: Explicitly set the protocol ---
+        protocol: plaintext
+        # --- NEW FIELD: Client ID for better tracking ---
+        clientID: keda-autoscaler-client
+        # Target: average lag of 50 messages per consumer instance.
+        lagThreshold: "50"
+        offsetResetPolicy: latest
+#    - type: cpu
+#      metadata:
+#        # KEDA requires a "type" field inside the metadata for resource scalers.
+#        type: Utilization
+#        value: "70" # Target 70% CPU utilization

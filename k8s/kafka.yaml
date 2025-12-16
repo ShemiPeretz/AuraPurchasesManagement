@@ -1,97 +1,9 @@
-# ============================================================================
-# Kafka & Zookeeper - Deployments & Services
-# ============================================================================
-#
-# Simple single-broker Kafka setup suitable for development and demos
-# For production, consider using Strimzi Kafka Operator or Confluent Operator
-#
-# Components:
-# - Zookeeper: Kafka metadata management
-# - Kafka: Message broker
-#
-# Usage:
-#   kubectl apply -f kafka.yaml -n ecommerce-system
-# ============================================================================
-
----
-# Zookeeper Deployment
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: zookeeper
-  namespace: ecommerce-system
-  labels:
-    app: zookeeper
-    component: messaging
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: zookeeper
-  template:
-    metadata:
-      labels:
-        app: zookeeper
-        component: messaging
-    spec:
-      containers:
-      - name: zookeeper
-        image: bitnami/zookeeper:latest
-        ports:
-        - containerPort: 2181
-          name: client
-        env:
-        - name: ALLOW_ANONYMOUS_LOGIN
-          value: "yes"
-
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-
-        livenessProbe:
-          tcpSocket:
-            port: 2181
-          initialDelaySeconds: 30
-          periodSeconds: 10
-
-        readinessProbe:
-          tcpSocket:
-            port: 2181
-          initialDelaySeconds: 10
-          periodSeconds: 5
-
----
-# Zookeeper Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: zookeeper-service
-  namespace: ecommerce-system
-  labels:
-    app: zookeeper
-spec:
-  type: ClusterIP
-  ports:
-  - port: 2181
-    targetPort: 2181
-    name: client
-  selector:
-    app: zookeeper
-
----
-# Kafka Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kafka
-  namespace: ecommerce-system
   labels:
     app: kafka
-    component: messaging
 spec:
   replicas: 1
   selector:
@@ -101,70 +13,74 @@ spec:
     metadata:
       labels:
         app: kafka
-        component: messaging
     spec:
       containers:
       - name: kafka
-        image: bitnami/kafka:latest
+        image: confluentinc/cp-kafka:latest
+        imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 9092
-          name: kafka
+        - containerPort: 29092 # Internal PLAINTEXT (Broker)
+        - containerPort: 29093 # Internal CONTROLLER
+        - containerPort: 9101 # JMX
         env:
-        - name: KAFKA_CFG_ZOOKEEPER_CONNECT
-          value: "zookeeper-service:2181"
-        - name: ALLOW_PLAINTEXT_LISTENER
-          value: "yes"
-        - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
-          value: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-        - name: KAFKA_CFG_LISTENERS
-          value: "PLAINTEXT://:9092,PLAINTEXT_HOST://:9093"
-        - name: KAFKA_CFG_ADVERTISED_LISTENERS
-          value: "PLAINTEXT://kafka-service:9092,PLAINTEXT_HOST://localhost:9093"
-        - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
+        # --- KRaft Configuration (Simplified) ---
+        - name: KAFKA_NODE_ID
+          value: "1"
+        # Only PLAINTEXT and CONTROLLER listeners are mapped
+        - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+          value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+        # IMPORTANT: Advertised listeners point only to the internal Service name
+        # In Kafka Deployment YAML
+        - name: KAFKA_ADVERTISED_LISTENERS
+          value: "PLAINTEXT://kafka-service.ecommerce-system.svc.cluster.local:29092"
+        - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS
+          value: "0"
+        - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+          value: "1"
+        - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+          value: "1"
+        - name: KAFKA_PROCESS_ROLES
+          value: "broker,controller"
+        - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+          # Uses the K8s Service name for the internal controller listener
+          value: "1@kafka-service:29093"
+        # Only PLAINTEXT and CONTROLLER listeners are defined
+        - name: KAFKA_LISTENERS
+          value: "PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093"
+        - name: KAFKA_INTER_BROKER_LISTENER_NAME
           value: "PLAINTEXT"
-        - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
-          value: "true"
-
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-
-        # Liveness probe - check if Kafka is alive
-        livenessProbe:
-          tcpSocket:
-            port: 9092
-          initialDelaySeconds: 60
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-
-        # Readiness probe - check if Kafka is ready
-        readinessProbe:
-          tcpSocket:
-            port: 9092
-          initialDelaySeconds: 30
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
+        - name: KAFKA_CONTROLLER_LISTENER_NAMES
+          value: "CONTROLLER"
+        - name: KAFKA_LOG_DIRS
+          value: "/tmp/kraft-combined-logs"
+        - name: CLUSTER_ID
+          value: "MkU3OEVBNTcwNTJENDM2Qk"
+        # --- JMX Configuration (Optional) ---
+        - name: KAFKA_JMX_PORT
+          value: "9101"
+        - name: KAFKA_JMX_HOSTNAME
+          value: "localhost"
 
 ---
-# Kafka Service
+
 apiVersion: v1
 kind: Service
 metadata:
   name: kafka-service
-  namespace: ecommerce-system
   labels:
     app: kafka
 spec:
-  type: ClusterIP
-  ports:
-  - port: 9092
-    targetPort: 9092
-    name: kafka
   selector:
     app: kafka
+  ports:
+    # Port for inter-broker/client communication
+    - name: client
+      port: 29092
+      targetPort: 29092
+    # Port for the KRaft controller communication
+    - name: controller
+      port: 29093
+      targetPort: 29093
+  type: ClusterIP

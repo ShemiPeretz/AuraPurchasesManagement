@@ -1,0 +1,23 @@
+# ============================================================================
+# KEDA Trigger Authentication for Kafka (CORRECTED)
+# References connection details from your existing 'app-config' ConfigMap
+# ============================================================================
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: kafka-trigger-auth
+  namespace: ecommerce-system
+spec:
+  # Use configTargetRef to reference values in a ConfigMap
+  configTargetRef:
+    - parameter: bootstrapServers # The field name in the KEDA Kafka trigger metadata
+      name: app-config            # The name of your ConfigMap
+      key: KAFKA_BOOTSTRAP_SERVERS # The key within the ConfigMap
+
+    - parameter: topic
+      name: app-config
+      key: KAFKA_TOPIC
+
+    - parameter: consumerGroup
+      name: app-config
+      key: KAFKA_GROUP_ID
