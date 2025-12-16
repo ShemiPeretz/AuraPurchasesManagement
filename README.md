@@ -1,5 +1,6 @@
 # Purchase Management System - Architecture Overview
 
+## For the deployment guide please view the Deployment.md file
 ## System Description
 
 A **microservices-based platform** that handles customer purchases through an **event-driven architecture** using **Apache Kafka** for message streaming and **MongoDB** as Database, with **automatic scaling** based on traffic and workload.
