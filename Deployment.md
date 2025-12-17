@@ -3,6 +3,9 @@
 ## Quick Start
 
 ### Automated Deployment
+
+#### Run this script for quick deployment or deploy it manually
+
 ```bash
 chmod +x deploy-system.sh
 ./deploy-system.sh
