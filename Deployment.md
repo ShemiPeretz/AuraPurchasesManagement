@@ -150,13 +150,13 @@ kubectl port-forward svc/customer-facing-service 8000:8000 -n ecommerce-system
 
 ```bash
 # Check health
-curl http://api.localhost/health
+curl http://localhost/api/health
 
 # List items
-curl http://api.localhost/items
+curl http://localhost/api/items
 
 # Make a purchase
-curl -X POST http://api.localhost/buy \
+curl -X POST http://localhost/api/buy \
   -H "Content-Type: application/json" \
   -d '{"username":"john_doe","user_id":"user_123"}'
 
@@ -164,7 +164,7 @@ curl -X POST http://api.localhost/buy \
 sleep 3
 
 # Get purchases
-curl http://api.localhost/purchases/user_123
+curl http://localhost/api/purchases/user_123
 ```
 
 ---

@@ -22,7 +22,7 @@ A **microservices-based platform** that handles customer purchases through an **
 │                                                                     │
 │   Routes:                                                           │
 │   - http://localhost         → Frontend Service                     │
-│   - http://api.localhost     → Customer Facing Service              │
+│   - http://localhost/api     → Customer Facing Service              │
 └──────────────┬──────────────────────────┬───────────────────────────┘
                │                          │
        ┌───────▼────────┐        ┌────────▼─────────────────┐
