@@ -3,6 +3,9 @@
 ## Quick Start
 
 ### Automated Deployment
+
+#### Run this script for quick deployment or deploy it manually
+
 ```bash
 chmod +x deploy-system.sh
 ./deploy-system.sh
@@ -125,7 +128,7 @@ open http://localhost
 **API:**
 ```bash
 # Test API endpoint
-curl http://api.localhost/health
+curl http://localhost/api/health
 ```
 
 **If localhost doesn't work, use port-forward:**
