@@ -125,7 +125,7 @@ open http://localhost
 **API:**
 ```bash
 # Test API endpoint
-curl http://api.localhost/health
+curl http://localhost/api/health
 ```
 
 **If localhost doesn't work, use port-forward:**
