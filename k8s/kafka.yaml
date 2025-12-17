@@ -23,14 +23,10 @@ spec:
         - containerPort: 29093 # Internal CONTROLLER
         - containerPort: 9101 # JMX
         env:
-        # --- KRaft Configuration (Simplified) ---
         - name: KAFKA_NODE_ID
           value: "1"
-        # Only PLAINTEXT and CONTROLLER listeners are mapped
         - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
           value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
-        # IMPORTANT: Advertised listeners point only to the internal Service name
-        # In Kafka Deployment YAML
         - name: KAFKA_ADVERTISED_LISTENERS
           value: "PLAINTEXT://kafka-service.ecommerce-system.svc.cluster.local:29092"
         - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
@@ -44,9 +40,7 @@ spec:
         - name: KAFKA_PROCESS_ROLES
           value: "broker,controller"
         - name: KAFKA_CONTROLLER_QUORUM_VOTERS
-          # Uses the K8s Service name for the internal controller listener
           value: "1@kafka-service:29093"
-        # Only PLAINTEXT and CONTROLLER listeners are defined
         - name: KAFKA_LISTENERS
           value: "PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093"
         - name: KAFKA_INTER_BROKER_LISTENER_NAME
@@ -57,7 +51,6 @@ spec:
           value: "/tmp/kraft-combined-logs"
         - name: CLUSTER_ID
           value: "MkU3OEVBNTcwNTJENDM2Qk"
-        # --- JMX Configuration (Optional) ---
         - name: KAFKA_JMX_PORT
           value: "9101"
         - name: KAFKA_JMX_HOSTNAME
