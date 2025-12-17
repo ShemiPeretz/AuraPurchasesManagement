@@ -151,15 +151,12 @@ spec:
         bootstrapServers: kafka-service.ecommerce-system.svc.cluster.local:29092
         consumerGroup: customer-management-group
         topic: purchases
-        # --- NEW FIELD: Explicitly set the protocol ---
         protocol: plaintext
-        # --- NEW FIELD: Client ID for better tracking ---
         clientID: keda-autoscaler-client
         # Target: average lag of 50 messages per consumer instance.
         lagThreshold: "50"
         offsetResetPolicy: latest
     - type: cpu
       metadata:
-        # KEDA requires a "type" field inside the metadata for resource scalers.
         type: Utilization
         value: "70" # Target 70% CPU utilization
