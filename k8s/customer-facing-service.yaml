@@ -53,12 +53,10 @@ spec:
               name: app-config
               key: LOG_LEVEL
 
-        # Resource requests and limits
-        # IMPORTANT: These are required for HPA to work
         resources:
           requests:
             memory: "256Mi"
-            cpu: "250m"     # HPA will scale based on this
+            cpu: "250m"
           limits:
             memory: "512Mi"
             cpu: "500m"
@@ -90,7 +88,7 @@ spec:
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
-          failureThreshold: 12  # 60 seconds total
+          failureThreshold: 12
 
 ---
 # Service
